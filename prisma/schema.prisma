@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              Int           @id @default(autoincrement())
+  email           String        @unique
+  passwordHash    String
+  balance         Decimal       @default(0) @db.Decimal(20, 8)
+  createdAt       DateTime      @default(now())
+  createdAuctions AuctionItem[] @relation("CreatedAuctions")
+  wonAuctions     AuctionItem[] @relation("WonAuctions")
+  bids            Bid[]
+
+  @@map("users")
+}
+
+model AuctionItem {
+  id            Int           @id @default(autoincrement())
+  title         String
+  description   String        @db.Text
+  startingPrice Decimal       @db.Decimal(20, 8)
+  currentPrice  Decimal       @db.Decimal(20, 8)
+  status        AuctionStatus @default(DRAFT)
+  creatorId     Int
+  winnerId      Int?
+  endsAt        DateTime
+  createdAt     DateTime      @default(now())
+  creator       User          @relation("CreatedAuctions", fields: [creatorId], references: [id])
+  winner        User?         @relation("WonAuctions", fields: [winnerId], references: [id])
+  bids          Bid[]
+
+  @@map("auction_items")
+}
+
+model Bid {
+  id            Int         @id @default(autoincrement())
+  amount        Decimal     @db.Decimal(20, 8)
+  bidderId      Int
+  auctionItemId Int
+  createdAt     DateTime    @default(now())
+  bidder        User        @relation(fields: [bidderId], references: [id])
+  auctionItem   AuctionItem @relation(fields: [auctionItemId], references: [id])
+
+  @@map("bids")
+}
+
+enum AuctionStatus {
+  DRAFT   @map("draft")
+  ACTIVE  @map("active")
+  SOLD    @map("sold")
+  EXPIRED @map("expired")
+
+  @@map("auction_status")
+}
